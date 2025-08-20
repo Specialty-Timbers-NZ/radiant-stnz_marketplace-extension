@@ -18,28 +18,34 @@ class Advert < ActiveRecord::Base
   SERIALIZED_COLUMNS = ["timber_species", "timber_for_sale", "buyer_of", "supplier_of", "services", "categories"]
 
   has_attached_file :image,
-      :styles => { :medium => "640x480>", :thumb => "120x90>" },
-      :path        => ":rails_root/public/attachments/:attachment/:id/:style/:basename.:extension",
-      :url         => "/attachments/:attachment/:id/:style/:basename.:extension",
-      :default_url => "/attachments/:attachment/missing/missing.png"
-  validates_attachment_size :image, :in => 1.kilobytes..5.megabytes
+    styles:      { medium: "640x480>", thumb: "120x90>" },
+    path:        ":rails_root/public/attachments/:attachment/:id/:style/:basename.:extension",
+    url:         "/attachments/:attachment/:id/:style/:basename.:extension",
+    default_url: "/attachments/:attachment/missing/missing.png"
+  validates_attachment_size :image, in: 1.kilobytes..5.megabytes
 
   SERIALIZED_COLUMNS.each do |attrib|
     serialize attrib.to_sym
   end
 
   belongs_to :reader
-  named_scope :not_expired, lambda { {:conditions => ['(adverts.expires_on > ? OR adverts.is_company_listing = ?) AND groups.id = ? AND subscriptions.expires_on >= ? AND subscriptions.begins_on <= ? AND subscriptions.cancelled_on IS NULL', Date.today, true, Group.fft_group, Date.today, Date.today], :include => [:reader => [:groups, :subscriptions]] }}
+  named_scope :not_expired, lambda { {conditions: 
+    [
+      '(adverts.expires_on > ? OR adverts.is_company_listing = ?) AND (groups.id = ? OR groups.id = ?)',
+      Date.today, true, Group.fft_group, Group.st_group
+    ],
+    include: [reader: [:groups]] 
+  }}
 
-  named_scope :published, lambda { {:conditions => {:is_published => true}} }
-  named_scope :company_listings, {:conditions => {:is_company_listing => true }}
-  named_scope :not_company_listings, {:conditions => {:is_company_listing => false }}
+  named_scope :published, lambda { {conditions: {is_published: true}} }
+  named_scope :company_listings, {conditions: {is_company_listing: true }}
+  named_scope :not_company_listings, {conditions: {is_company_listing: false }}
 
   validates_presence_of :reader
-  validates_presence_of :expires_on, :unless => :is_company_listing
+  validates_presence_of :expires_on, unless: :is_company_listing
 
-  validates_length_of :title, :minimum => 3, :unless => :is_company_listing
-  validates_length_of :body, :minimum => 15, :unless => :is_company_listing
+  validates_length_of :title, minimum: 3, unless: :is_company_listing
+  validates_length_of :body, minimum: 15, unless: :is_company_listing
   before_create :validate_one_company_listing_per_reader
 
   accepts_nested_attributes_for :reader
@@ -165,7 +171,7 @@ class Advert < ActiveRecord::Base
   private
   def validate_one_company_listing_per_reader
     if is_company_listing?
-      existing = Advert.find(:all, :conditions => {:is_company_listing => true, :reader_id => reader_id})
+      existing = Advert.find(:all, conditions: {is_company_listing: true, reader_id: reader_id})
       if existing.any?
         self.errors.add(:is_company_listing, "There is already a company listing for this reader id #{reader_id} n: #{existing.size}")
       end
