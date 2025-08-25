@@ -31,8 +31,8 @@ class Advert < ActiveRecord::Base
   belongs_to :reader
   named_scope :not_expired, lambda { {conditions: 
     [
-      '(adverts.expires_on > ? OR adverts.is_company_listing = ?) AND (groups.id = ? OR groups.id = ?)',
-      Date.today, true, Group.fft_group, Group.st_group
+      '(adverts.expires_on > ? OR adverts.is_company_listing = ?) AND groups.id = ?',
+      Date.today, true, Group.st_group
     ],
     include: [reader: [:groups]] 
   }}
