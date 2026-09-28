@@ -1,6 +1,6 @@
 class MarketplaceController < ReaderActionController
   REGISTER_PATH = '/membership/register'
-  FFT_MEMBERS_AREA_PATH = '/membership/membership'
+  FFT_MEMBERS_AREA_PATH = '/members/membership'
   
   radiant_layout { |c| Radiant::Config['reader.layout'] }
   
